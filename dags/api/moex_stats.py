@@ -1,0 +1,50 @@
+import requests
+import json
+
+#import os
+#from dotenv import load_dotenv
+#load_dotenv(dotenv_path='./.env')
+
+from airflow.decorators import task
+from airflow.models import Variable
+
+
+@task
+def get_securities_info(security_name, date):
+    try:
+        url = f'https://iss.moex.com/iss/engines/stock/markets/shares/securities/{security_name}/candles.json?from={date}&till={date}&interval=24&start=0'
+
+        response = requests.get(url)
+        response.raise_for_status()
+
+        response_data = response.json()
+        security_data = []
+
+        for day_info in response_data.get('candles').get('data'):
+            print("for", day_info)
+            security_data.append({
+                'securit_name': 'SBER',
+                'open': day_info[0],
+                'close': day_info[1],
+                'high': day_info[2],
+                'low': day_info[3],
+                'value': day_info[4],
+                'volume': day_info[5],
+                'begin': day_info[6],
+                'end': day_info[7]
+            })
+
+        return security_data
+
+    except requests.exceptions.RequestException as e:
+        raise e
+@task
+def save_json_data(json_data):
+    file_path = './data/moex_data.json'
+    with open(file_path, "w", encoding='utf-8') as json_outfile:
+        json.dump(json_data, json_outfile, indent=4, ensure_ascii=False)
+
+if __name__ == "__main__":
+    json_data = get_securities_info(security_name = Variable.get('security_name'), date = Variable.get('date'))
+    save_json_data(json_data)
+
