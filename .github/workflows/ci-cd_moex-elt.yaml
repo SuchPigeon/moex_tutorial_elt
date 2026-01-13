@@ -73,5 +73,5 @@ jobs:
             docker exec -t airflow-worker sh -c "airflow dags test $DAG"
           done
       - name: Tear down Docker Compose
-        if: setps.changed-files-tests.outputs.any_changed == 'true'
+        if: steps.changed-files-tests.outputs.any_changed == 'true'
         run: docker compose down
