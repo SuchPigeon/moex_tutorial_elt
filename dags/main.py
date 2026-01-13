@@ -5,6 +5,7 @@ import pendulum
 from datetime import datetime, timedelta
 from api.moex_stats import get_securities_info, save_json_data
 from datawarehouse.dwh import staging_table, core_table
+from dataquality.soda import moex_elt_data_quality
 
 local_tz = pendulum.timezone("Europe/Moscow")
 
@@ -18,6 +19,9 @@ default_args = {
         "start_date": datetime(2025, 1, 1, tzinfo=local_tz)
 }
 
+staging_schema = "staging"
+core_schema = "core"
+
 with DAG(
         dag_id='security_info',
         default_args=default_args,
@@ -30,6 +34,8 @@ with DAG(
 
     security_info >> json_data
 
+
+
 with DAG(
         dag_id='update_db',
         default_args=default_args,
@@ -41,3 +47,17 @@ with DAG(
     update_core = core_table()
 
     update_staging >> update_core
+
+
+
+with DAG(
+        dag_id='data_quality',
+        default_args=default_args,
+        description='DAG to check the data quality on both layers in the db',
+        schedule='0 16 * * *',
+        catchup=False
+) as dag:
+    soda_validate_staging = moex_elt_data_quality(staging_schema)
+    soda_validate_core    = moex_elt_data_quality(core_schema)
+
+    soda_validate_staging >> soda_validate_core

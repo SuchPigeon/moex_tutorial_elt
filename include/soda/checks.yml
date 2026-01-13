@@ -1,0 +1,9 @@
+checks for moex_api:
+  - missing_count("security_name") = 0
+  - duplicate_count("security_name", "begin_timestamp") = 0
+  - day_low_greater_than_high = 0:
+      name: Check if there is no day low greater than high
+      day_low_greater_than_high query: |
+        SELECT COUNT(*)
+        FROM moex_api
+        WHERE "high" < "low"
